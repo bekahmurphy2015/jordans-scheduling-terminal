@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jordan's Scheduling Terminal</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Roboto Mono', monospace;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .terminal-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 3px solid #00ff00;
+            padding-bottom: 20px;
+        }
+        
+        .title {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #00ff00;
+            text-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+        
+        .datetime {
+            font-size: 1.2rem;
+            color: #ffff00;
+            text-shadow: 0 0 10px rgba(255, 255, 0, 0.5);
+        }
+        
+        .section {
+            margin-bottom: 30px;
+        }
+        
+        .section-header {
+            background: linear-gradient(90deg, #ff6b00, #ff8800);
+            color: white;
+            padding: 15px 20px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            border-radius: 5px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .section-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .section-header:hover::before {
+            left: 100%;
+        }
+        
+        .collapse-indicator {
+            float: right;
+            transition: transform 0.3s;
+        }
+        
+        .collapsed .collapse-indicator {
+            transform: rotate(180deg);
+        }
+        
+        .flights-board {
+            background: #000000;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        
+        .flight-header {
+            background: #333333;
+            padding: 15px;
+            font-weight: 700;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+            gap: 20px;
+            color: #00ff00;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .flight-row {
+            padding: 15px;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+            gap: 20px;
+            border-bottom: 1px solid #333333;
+            transition: background-color 0.3s;
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        .flight-row:hover {
+            background: rgba(0, 255, 0, 0.1);
+        }
+        
+        .flight-row:nth-child(even) {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .status {
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 5px 10px;
+            border-radius: 15px;
+            text-align: center;
+        }
+        
+        .status.scheduled {
+            background: #00ff00;
+            color: #000000;
+        }
+        
+        .status.ongoing {
+            background: #ffff00;
+            color: #000000;
+            animation: pulse 2s infinite;
+        }
+        
+        .status.completed {
+            background: #888888;
+            color: #ffffff;
+        }
+        
+        .status.cancelled {
+            background: #ff0000;
+            color: #ffffff;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #00ff00;
+            font-size: 1.2rem;
+            padding: 40px;
+        }
+        
+        .error {
+            text-align: center;
+            color: #ff0000;
+            font-size: 1.2rem;
+            padding: 40px;
+        }
+        
+        .collapsible-content {
+            max-height: 1000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        
+        .collapsible-content.collapsed {
+            max-height: 0;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .refresh-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 255, 0, 0.8);
+            color: #000000;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .refresh-indicator.show {
+            opacity: 1;
+        }
+        
+        @media (max-width: 768px) {
+            .title {
+                font-size: 2rem;
+            }
+            
+            .flight-header,
+            .flight-row {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .flight-header > div,
+            .flight-row > div {
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="terminal-container">
+        <div class="header">
+            <h1 class="title">JORDAN'S SCHEDULING TERMINAL</h1>
+            <div class="datetime" id="datetime"></div>
+        </div>
+        
+        <div class="section">
+            <div class="section-header" onclick="toggleSection('current')">
+                <span>Current & Upcoming Meetings</span>
+                <span class="collapse-indicator">▼</span>
+            </div>
+            <div class="collapsible-content" id="current-content">
+                <div class="flights-board">
+                    <div class="flight-header">
+                        <div>Meeting</div>
+                        <div>Status</div>
+                        <div>Date</div>
+                        <div>Location</div>
+                        <div>Notes</div>
+                    </div>
+                    <div id="current-meetings">
+                        <div class="loading">Loading current meetings...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-header" onclick="toggleSection('past')">
+                <span>Past Meetings</span>
+                <span class="collapse-indicator">▼</span>
+            </div>
+            <div class="collapsible-content collapsed" id="past-content">
+                <div class="flights-board">
+                    <div class="flight-header">
+                        <div>Meeting</div>
+                        <div>Status</div>
+                        <div>Date</div>
+                        <div>Location</div>
+                        <div>Notes</div>
+                    </div>
+                    <div id="past-meetings">
+                        <div class="loading">Loading past meetings...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="refresh-indicator" id="refresh-indicator">
+        Refreshing data...
+    </div>
+
+    <script>
+        // Configuration
+        const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/16OhRbSJ7weWKebvS8xZzboxohQ3J7VbyZlW13NGIzKU/export?format=csv';
+        const REFRESH_INTERVAL = 30000; // 30 seconds
+        
+        // Global variables
+        let meetingsData = [];
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+            
+            loadMeetings();
+            setInterval(loadMeetings, REFRESH_INTERVAL);
+        });
+        
+        function updateDateTime() {
+            const now = new Date();
+            const options = {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            };
+            document.getElementById('datetime').textContent = now.toLocaleDateString('en-US', options);
+        }
+        
+        function showRefreshIndicator() {
+            const indicator = document.getElementById('refresh-indicator');
+            indicator.classList.add('show');
+            setTimeout(() => {
+                indicator.classList.remove('show');
+            }, 2000);
+        }
+        
+        async function loadMeetings() {
+            try {
+                showRefreshIndicator();
+                
+                const response = await fetch(SHEET_CSV_URL);
+                const csvText = await response.text();
+                
+                meetingsData = parseCSV(csvText);
+                displayMeetings();
+                
+            } catch (error) {
+                console.error('Error loading meetings:', error);
+                document.getElementById('current-meetings').innerHTML = '<div class="error">Error loading meetings. Please check the spreadsheet URL.</div>';
+                document.getElementById('past-meetings').innerHTML = '<div class="error">Error loading meetings. Please check the spreadsheet URL.</div>';
+            }
+        }
+        
+        function parseCSV(csvText) {
+            const lines = csvText.trim().split('\n');
+            const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+            
+            const meetings = [];
+            for (let i = 1; i < lines.length; i++) {
+                const values = parseCSVLine(lines[i]);
+                if (values.length >= headers.length) {
+                    const meeting = {};
+                    headers.forEach((header, index) => {
+                        meeting[header] = values[index] || '';
+                    });
+                    meetings.push(meeting);
+                }
+            }
+            
+            return meetings;
+        }
+        
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            
+            result.push(current.trim());
+            return result;
+        }
+        
+        function displayMeetings() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const currentMeetings = [];
+            const pastMeetings = [];
+            
+            meetingsData.forEach(meeting => {
+                const meetingDate = parseDate(meeting.Date || meeting.date);
+                
+                if (meetingDate >= today) {
+                    currentMeetings.push(meeting);
+                } else {
+                    pastMeetings.push(meeting);
+                }
+            });
+            
+            // Sort meetings by date and time
+            currentMeetings.sort((a, b) => {
+                const dateA = parseDate(a.Date || a.date);
+                const dateB = parseDate(b.Date || b.date);
+                return dateA - dateB;
+            });
+            
+            pastMeetings.sort((a, b) => {
+                const dateA = parseDate(a.Date || a.date);
+                const dateB = parseDate(b.Date || b.date);
+                return dateB - dateA; // Reverse order for past meetings
+            });
+            
+            renderMeetings('current-meetings', currentMeetings);
+            renderMeetings('past-meetings', pastMeetings);
+        }
+        
+        function parseDate(dateString) {
+            if (!dateString) return new Date();
+            
+            // Handle various date formats
+            const date = new Date(dateString);
+            return isNaN(date) ? new Date() : date;
+        }
+        
+        function renderMeetings(containerId, meetings) {
+            const container = document.getElementById(containerId);
+            
+            if (meetings.length === 0) {
+                container.innerHTML = '<div class="loading">No meetings found</div>';
+                return;
+            }
+            
+            const html = meetings.map(meeting => {
+                const status = determineStatus(meeting);
+                return `
+                    <div class="flight-row">
+                        <div>${meeting.Meeting || meeting.meeting || 'N/A'}</div>
+                        <div>${formatDate(meeting.Date || meeting.date)}</div>
+                        <div>${meeting.Notes || meeting.notes || 'N/A'}</div>
+                        <div>${meeting.Location || meeting.location || 'N/A'}</div>
+                        <div><span class="status ${status.class}">${status.text}</span></div>
+                    </div>
+                `;
+            }).join('');
+            
+            container.innerHTML = html;
+        }
+        
+        function determineStatus(meeting) {
+            const now = new Date();
+            const meetingDate = parseDate(meeting.Date || meeting.date);
+            const status = (meeting.Status || meeting.status || '').toLowerCase();
+            
+            if (status.includes('cancelled')) {
+                return { class: 'cancelled', text: 'Cancelled' };
+            }
+            
+            if (meetingDate.toDateString() === now.toDateString()) {
+                // Check if meeting is currently happening
+                const timeStr = meeting.Time || meeting.time || '';
+                if (timeStr && isCurrentlyHappening(timeStr)) {
+                    return { class: 'ongoing', text: 'In Progress' };
+                }
+            }
+            
+            if (meetingDate < now) {
+                return { class: 'completed', text: 'Completed' };
+            }
+            
+            return { class: 'scheduled', text: 'Scheduled' };
+        }
+        
+        function isCurrentlyHappening(timeStr) {
+            // Basic time check - you might want to enhance this based on your time format
+            const now = new Date();
+            const currentTime = now.getHours() * 60 + now.getMinutes();
+            
+            // Parse time string (assuming format like "10:00 AM" or "14:30")
+            const timeMatch = timeStr.match(/(\d{1,2}):(\d{2})(\s*(AM|PM))?/i);
+            if (!timeMatch) return false;
+            
+            let hours = parseInt(timeMatch[1]);
+            const minutes = parseInt(timeMatch[2]);
+            const ampm = timeMatch[4];
+            
+            if (ampm) {
+                if (ampm.toUpperCase() === 'PM' && hours !== 12) hours += 12;
+                if (ampm.toUpperCase() === 'AM' && hours === 12) hours = 0;
+            }
+            
+            const meetingTime = hours * 60 + minutes;
+            const meetingEndTime = meetingTime + 60; // Assume 1 hour meetings
+            
+            return currentTime >= meetingTime && currentTime <= meetingEndTime;
+        }
+        
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            
+            const date = parseDate(dateString);
+            return date.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            });
+        }
+        
+        function toggleSection(sectionId) {
+            const content = document.getElementById(sectionId + '-content');
+            const header = content.previousElementSibling;
+            
+            content.classList.toggle('collapsed');
+            header.classList.toggle('collapsed');
+        }
+    </script>
+</body>
+</html>
