@@ -343,16 +343,24 @@
             const lines = csvText.trim().split('\n');
             const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
             
+            // Debug: Show what columns we found
+            console.log('Found these columns in your spreadsheet:', headers);
+            
             const meetings = [];
             for (let i = 1; i < lines.length; i++) {
                 const values = parseCSVLine(lines[i]);
                 if (values.length >= headers.length) {
                     const meeting = {};
                     headers.forEach((header, index) => {
-                        meeting[header] = values[index] || '';
+                        meeting[header] = values[index] ? values[index].replace(/"/g, '').trim() : '';
                     });
                     meetings.push(meeting);
                 }
+            }
+            
+            // Debug: Show first meeting to see the data structure
+            if (meetings.length > 0) {
+                console.log('First meeting data:', meetings[0]);
             }
             
             return meetings;
@@ -388,7 +396,10 @@
             const pastMeetings = [];
             
             meetingsData.forEach(meeting => {
-                const meetingDate = parseDate(meeting.Date || meeting.date);
+                // Use the third column (index 2) as the date column
+                const columns = Object.keys(meeting);
+                const dateValue = meeting[columns[2]]; // Assuming date is in 3rd column
+                const meetingDate = parseDate(dateValue);
                 
                 if (meetingDate >= today) {
                     currentMeetings.push(meeting);
@@ -397,16 +408,18 @@
                 }
             });
             
-            // Sort meetings by date and time
+            // Sort meetings by date
             currentMeetings.sort((a, b) => {
-                const dateA = parseDate(a.Date || a.date);
-                const dateB = parseDate(b.Date || b.date);
+                const columns = Object.keys(a);
+                const dateA = parseDate(a[columns[2]]);
+                const dateB = parseDate(b[columns[2]]);
                 return dateA - dateB;
             });
             
             pastMeetings.sort((a, b) => {
-                const dateA = parseDate(a.Date || a.date);
-                const dateB = parseDate(b.Date || b.date);
+                const columns = Object.keys(a);
+                const dateA = parseDate(a[columns[2]]);
+                const dateB = parseDate(b[columns[2]]);
                 return dateB - dateA; // Reverse order for past meetings
             });
             
@@ -431,19 +444,54 @@
             }
             
             const html = meetings.map(meeting => {
-                const status = determineStatus(meeting);
+                // Get the exact column names from your spreadsheet
+                const columns = Object.keys(meeting);
+                console.log('Available columns:', columns);
+                
+                // Use the first 5 columns in order, or map to expected names
+                const col1 = meeting[columns[0]] || 'N/A'; // Meeting
+                const col2 = meeting[columns[1]] || 'N/A'; // Status  
+                const col3 = meeting[columns[2]] || 'N/A'; // Date
+                const col4 = meeting[columns[3]] || 'N/A'; // Location
+                const col5 = meeting[columns[4]] || 'N/A'; // Notes
+                
+                const status = determineStatusFromText(col2);
+                
                 return `
                     <div class="flight-row">
-                        <div>${meeting.Meeting || meeting.meeting || 'N/A'}</div>
-                        <div>${formatDate(meeting.Date || meeting.date)}</div>
-                        <div>${meeting.Notes || meeting.notes || 'N/A'}</div>
-                        <div>${meeting.Location || meeting.location || 'N/A'}</div>
+                        <div>${col1}</div>
                         <div><span class="status ${status.class}">${status.text}</span></div>
+                        <div>${formatDate(col3)}</div>
+                        <div>${col4}</div>
+                        <div>${col5}</div>
                     </div>
                 `;
             }).join('');
             
             container.innerHTML = html;
+        }
+        
+        function determineStatusFromText(statusText) {
+            const status = (statusText || '').toLowerCase().trim();
+            
+            if (status.includes('cancelled') || status.includes('canceled')) {
+                return { class: 'cancelled', text: statusText || 'Cancelled' };
+            }
+            
+            if (status.includes('completed') || status.includes('done') || status.includes('finished')) {
+                return { class: 'completed', text: statusText || 'Completed' };
+            }
+            
+            if (status.includes('ongoing') || status.includes('in progress') || status.includes('active')) {
+                return { class: 'ongoing', text: statusText || 'In Progress' };
+            }
+            
+            if (status.includes('scheduled') || status.includes('confirmed') || status === '' || status.includes('upcoming')) {
+                return { class: 'scheduled', text: statusText || 'Scheduled' };
+            }
+            
+            // Use the exact text from your spreadsheet
+            return { class: 'scheduled', text: statusText || 'Scheduled' };
         }
         
         function determineStatus(meeting) {
