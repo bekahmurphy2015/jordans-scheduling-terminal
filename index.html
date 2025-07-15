@@ -389,12 +389,26 @@
             
             const currentMeetings = [];
             const pastMeetings = [];
+            const undatedMeetings = [];
             
             meetingsData.forEach(meeting => {
                 // Use the third column (index 2) as the date column
                 const columns = Object.keys(meeting);
                 const dateValue = meeting[columns[2]]; // Assuming date is in 3rd column
+                
+                // Check if date is blank or empty
+                if (!dateValue || dateValue.trim() === '') {
+                    undatedMeetings.push(meeting);
+                    return;
+                }
+                
                 const meetingDate = parseDate(dateValue);
+                
+                // Check if date is valid
+                if (isNaN(meetingDate)) {
+                    undatedMeetings.push(meeting);
+                    return;
+                }
                 
                 if (meetingDate >= today) {
                     currentMeetings.push(meeting);
@@ -448,7 +462,10 @@
                 return dateB - dateA; // Reverse order for past meetings
             });
             
-            renderMeetings('current-meetings', currentMeetings);
+            // Add undated meetings to current meetings (they'll appear at the end based on status)
+            const allCurrentMeetings = [...currentMeetings, ...undatedMeetings];
+            
+            renderMeetings('current-meetings', allCurrentMeetings);
             renderMeetings('past-meetings', pastMeetings);
         }
         
@@ -482,11 +499,17 @@
                 
                 const status = determineStatusFromText(col2);
                 
+                // Only show dates for scheduled meetings
+                let displayDate = '';
+                if (status.class === 'scheduled') {
+                    displayDate = formatDate(col3);
+                }
+                
                 return `
                     <div class="flight-row">
                         <div>${col1}</div>
                         <div><span class="status ${status.class}">${status.text}</span></div>
-                        <div>${formatDate(col3)}</div>
+                        <div>${displayDate}</div>
                         <div>${col4}</div>
                         <div>${col5}</div>
                     </div>
@@ -564,9 +587,11 @@
         }
         
         function formatDate(dateString) {
-            if (!dateString) return 'N/A';
+            if (!dateString || dateString.trim() === '') return '';
             
             const date = parseDate(dateString);
+            if (isNaN(date)) return '';
+            
             return date.toLocaleDateString('en-US', {
                 month: 'short',
                 day: 'numeric',
