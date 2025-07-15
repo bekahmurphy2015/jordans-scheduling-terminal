@@ -417,7 +417,7 @@
                 }
             });
             
-            // Sort current meetings with custom priority: Scheduled → In Process → Unresponsive
+            // Sort current meetings with custom priority: In Process → Scheduled → Unresponsive
             currentMeetings.sort((a, b) => {
                 const columns = Object.keys(a);
                 const statusA = (a[columns[1]] || '').toLowerCase().trim();
@@ -426,12 +426,12 @@
                 // Determine status categories
                 const getStatusPriority = (status) => {
                     if (status.includes('in process') || status.includes('in progress') || status.includes('active') || status.includes('ongoing')) {
-                        return 2; // In Process - middle priority
+                        return 1; // In Process - highest priority
                     }
                     if (status.includes('unresponsive') || status.includes('no response') || status.includes('not responding')) {
                         return 3; // Unresponsive - lowest priority
                     }
-                    return 1; // Scheduled - highest priority
+                    return 2; // Scheduled - middle priority
                 };
                 
                 const priorityA = getStatusPriority(statusA);
@@ -447,7 +447,7 @@
                     const nameA = (a[columns[0]] || '').toLowerCase();
                     const nameB = (b[columns[0]] || '').toLowerCase();
                     return nameA.localeCompare(nameB);
-                } else { // Both scheduled or in process - sort chronologically by date
+                } else { // Both in process or scheduled - sort chronologically by date
                     const dateA = parseDate(a[columns[2]]);
                     const dateB = parseDate(b[columns[2]]);
                     return dateA - dateB;
