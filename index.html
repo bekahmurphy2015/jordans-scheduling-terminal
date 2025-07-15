@@ -389,26 +389,12 @@
             
             const currentMeetings = [];
             const pastMeetings = [];
-            const undatedMeetings = [];
             
             meetingsData.forEach(meeting => {
                 // Use the third column (index 2) as the date column
                 const columns = Object.keys(meeting);
                 const dateValue = meeting[columns[2]]; // Assuming date is in 3rd column
-                
-                // Check if date is blank or empty
-                if (!dateValue || dateValue.trim() === '') {
-                    undatedMeetings.push(meeting);
-                    return;
-                }
-                
                 const meetingDate = parseDate(dateValue);
-                
-                // Check if date is valid
-                if (isNaN(meetingDate)) {
-                    undatedMeetings.push(meeting);
-                    return;
-                }
                 
                 if (meetingDate >= today) {
                     currentMeetings.push(meeting);
@@ -462,10 +448,7 @@
                 return dateB - dateA; // Reverse order for past meetings
             });
             
-            // Add undated meetings to current meetings (they'll appear at the end based on status)
-            const allCurrentMeetings = [...currentMeetings, ...undatedMeetings];
-            
-            renderMeetings('current-meetings', allCurrentMeetings);
+            renderMeetings('current-meetings', currentMeetings);
             renderMeetings('past-meetings', pastMeetings);
         }
         
@@ -581,11 +564,9 @@
         }
         
         function formatDate(dateString) {
-            if (!dateString || dateString.trim() === '') return '';
+            if (!dateString) return 'N/A';
             
             const date = parseDate(dateString);
-            if (isNaN(date)) return '';
-            
             return date.toLocaleDateString('en-US', {
                 month: 'short',
                 day: 'numeric',
