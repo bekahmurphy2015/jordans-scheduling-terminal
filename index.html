@@ -144,18 +144,13 @@
             color: #000000;
         }
         
-        .status.ongoing {
+        .status.in-process {
             background: #ffff00;
             color: #000000;
             animation: pulse 2s infinite;
         }
         
-        .status.completed {
-            background: #888888;
-            color: #ffffff;
-        }
-        
-        .status.cancelled {
+        .status.unresponsive {
             background: #ff0000;
             color: #ffffff;
         }
@@ -474,23 +469,19 @@
         function determineStatusFromText(statusText) {
             const status = (statusText || '').toLowerCase().trim();
             
-            if (status.includes('cancelled') || status.includes('canceled')) {
-                return { class: 'cancelled', text: statusText || 'Cancelled' };
+            if (status.includes('unresponsive') || status.includes('no response') || status.includes('not responding')) {
+                return { class: 'unresponsive', text: statusText || 'Unresponsive' };
             }
             
-            if (status.includes('completed') || status.includes('done') || status.includes('finished')) {
-                return { class: 'completed', text: statusText || 'Completed' };
-            }
-            
-            if (status.includes('ongoing') || status.includes('in progress') || status.includes('active')) {
-                return { class: 'ongoing', text: statusText || 'In Progress' };
+            if (status.includes('in process') || status.includes('in progress') || status.includes('active') || status.includes('ongoing')) {
+                return { class: 'in-process', text: statusText || 'In Process' };
             }
             
             if (status.includes('scheduled') || status.includes('confirmed') || status === '' || status.includes('upcoming')) {
                 return { class: 'scheduled', text: statusText || 'Scheduled' };
             }
             
-            // Use the exact text from your spreadsheet
+            // Use the exact text from your spreadsheet with default green styling
             return { class: 'scheduled', text: statusText || 'Scheduled' };
         }
         
