@@ -326,16 +326,32 @@
             try {
                 showRefreshIndicator();
                 
-                const response = await fetch(SHEET_CSV_URL);
+                console.log('Attempting to load from:', SHEET_CSV_URL);
+                
+                const response = await fetch(SHEET_CSV_URL, {
+                    method: 'GET',
+                    mode: 'cors',
+                    cache: 'no-cache'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const csvText = await response.text();
+                console.log('CSV data received, length:', csvText.length);
+                console.log('First 200 characters:', csvText.substring(0, 200));
                 
                 meetingsData = parseCSV(csvText);
+                console.log('Total meetings parsed:', meetingsData.length);
+                
                 displayMeetings();
                 
             } catch (error) {
                 console.error('Error loading meetings:', error);
-                document.getElementById('current-meetings').innerHTML = '<div class="error">Error loading meetings. Please check the spreadsheet URL.</div>';
-                document.getElementById('past-meetings').innerHTML = '<div class="error">Error loading meetings. Please check the spreadsheet URL.</div>';
+                console.error('Error details:', error.message);
+                document.getElementById('current-meetings').innerHTML = `<div class="error">Error loading meetings: ${error.message}</div>`;
+                document.getElementById('past-meetings').innerHTML = `<div class="error">Error loading meetings: ${error.message}</div>`;
             }
         }
         
