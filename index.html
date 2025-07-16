@@ -506,7 +506,9 @@
                 return;
             }
             
-            const html = meetings.map(meeting => {
+            console.log(`Rendering ${meetings.length} meetings for ${containerId}`);
+            
+            const html = meetings.map((meeting, index) => {
                 // Get the exact column names from your spreadsheet
                 const columns = Object.keys(meeting);
                 
@@ -518,6 +520,8 @@
                 const col5 = meeting[columns[4]] || 'N/A'; // Notes
                 
                 const status = determineStatusFromText(col2);
+                
+                console.log(`Meeting ${index + 1}: "${col1}" - Status: "${col2}" -> Class: ${status.class}`);
                 
                 // Only show dates for scheduled meetings
                 let displayDate = '';
@@ -537,11 +541,13 @@
             }).join('');
             
             container.innerHTML = html;
-            console.log(`Rendered ${meetings.length} meetings in ${containerId}`);
+            console.log(`Successfully rendered ${meetings.length} meetings in ${containerId}`);
         }
         
         function determineStatusFromText(statusText) {
             const status = (statusText || '').toLowerCase().trim();
+            
+            console.log('Checking status:', statusText, '-> normalized:', status);
             
             if (status.includes('unresponsive') || status.includes('no response') || status.includes('not responding')) {
                 return { class: 'unresponsive', text: statusText || 'Unresponsive' };
