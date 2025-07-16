@@ -509,7 +509,6 @@
             const html = meetings.map(meeting => {
                 // Get the exact column names from your spreadsheet
                 const columns = Object.keys(meeting);
-                console.log('Available columns:', columns);
                 
                 // Use the first 5 columns in order, or map to expected names
                 const col1 = meeting[columns[0]] || 'N/A'; // Meeting
@@ -538,6 +537,7 @@
             }).join('');
             
             container.innerHTML = html;
+            console.log(`Rendered ${meetings.length} meetings in ${containerId}`);
         }
         
         function determineStatusFromText(statusText) {
