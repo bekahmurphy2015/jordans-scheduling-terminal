@@ -5,6 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jordan's Scheduling Terminal</title>
     <style>
+        css.section-content {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.section-content::-webkit-scrollbar {
+    width: 12px;
+    background-color: #1a1a1a;
+}
+
+.section-content::-webkit-scrollbar-thumb {
+    background-color: #33ff33;
+    border-radius: 6px;
+}
         @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
         
         * {
@@ -176,7 +190,7 @@
         
         .collapsible-content {
             max-height: 1000px;
-            overflow: hidden;
+            overflow: infinite;
             transition: max-height 0.3s ease-out;
         }
         
