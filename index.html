@@ -350,19 +350,30 @@
             try {
                 showRefreshIndicator();
                 
-                const response = await fetch(SHEET_CSV_URL);
+                console.log('Attempting to load from:', SHEET_CSV_URL);
+                
+                const response = await fetch(SHEET_CSV_URL, {
+                    method: 'GET',
+                    mode: 'cors',
+                    cache: 'no-cache'
+                });
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
                 const csvText = await response.text();
+                console.log('CSV data received, length:', csvText.length);
+                console.log('First 200 characters:', csvText.substring(0, 200));
+                
                 meetingsData = parseCSV(csvText);
+                console.log('Total meetings parsed:', meetingsData.length);
                 
                 displayMeetings();
                 
             } catch (error) {
                 console.error('Error loading meetings:', error);
+                console.error('Error details:', error.message);
                 document.getElementById('current-meetings').innerHTML = `<div class="error">Error loading meetings: ${error.message}</div>`;
                 document.getElementById('past-meetings').innerHTML = `<div class="error">Error loading meetings: ${error.message}</div>`;
             }
@@ -371,6 +382,9 @@
         function parseCSV(csvText) {
             const lines = csvText.trim().split('\n');
             const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+            
+            // Debug: Show what columns we found
+            console.log('Found these columns in your spreadsheet:', headers);
             
             const meetings = [];
             for (let i = 1; i < lines.length; i++) {
@@ -382,6 +396,11 @@
                     });
                     meetings.push(meeting);
                 }
+            }
+            
+            // Debug: Show first meeting to see the data structure
+            if (meetings.length > 0) {
+                console.log('First meeting data:', meetings[0]);
             }
             
             return meetings;
@@ -413,60 +432,89 @@
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             
+            console.log('=== DISPLAY MEETINGS DEBUG ===');
+            console.log('Total meetings data:', meetingsData.length);
+            console.log('Today date:', today);
+            
             const currentMeetings = [];
             const pastMeetings = [];
             const undatedMeetings = [];
             
-            meetingsData.forEach((meeting) => {
+            meetingsData.forEach((meeting, index) => {
+                // Use the third column (index 2) as the date column
                 const columns = Object.keys(meeting);
-                const dateValue = meeting[columns[2]]; // Date is in 3rd column
+                const dateValue = meeting[columns[2]]; // Assuming date is in 3rd column
                 
+                console.log(`Meeting ${index + 1}: "${meeting[columns[0]]}" - Date: "${dateValue}"`);
+                
+                // Check if date is blank or empty
                 if (!dateValue || dateValue.trim() === '') {
+                    console.log(`  -> Added to undated meetings`);
                     undatedMeetings.push(meeting);
                     return;
                 }
                 
                 const meetingDate = parseDate(dateValue);
                 
+                // Check if date is valid
                 if (isNaN(meetingDate)) {
+                    console.log(`  -> Invalid date, added to undated meetings`);
                     undatedMeetings.push(meeting);
                     return;
                 }
                 
                 if (meetingDate >= today) {
+                    console.log(`  -> Added to current meetings`);
                     currentMeetings.push(meeting);
                 } else {
+                    console.log(`  -> Added to past meetings`);
                     pastMeetings.push(meeting);
                 }
             });
             
-            // Sort current meetings by status priority
+            console.log('Current meetings before sorting:', currentMeetings.length);
+            console.log('Past meetings before sorting:', pastMeetings.length);
+            console.log('Undated meetings:', undatedMeetings.length);
+            
+            // Sort current meetings by status priority and then appropriately within each status
             currentMeetings.sort((a, b) => {
                 const columns = Object.keys(a);
                 const statusA = (a[columns[1]] || '').toLowerCase().trim();
                 const statusB = (b[columns[1]] || '').toLowerCase().trim();
                 
                 const getStatusPriority = (status) => {
-                    if (status.includes('in process') || status.includes('in progress')) {
-                        return 2;
+                    if (status.includes('scheduled') || status.includes('confirmed') || status === '' || status.includes('upcoming')) {
+                        return 1; // Scheduled - highest priority
                     }
-                    if (status.includes('unresponsive')) {
-                        return 3;
+                    if (status.includes('in process') || status.includes('in progress') || status.includes('active') || status.includes('ongoing')) {
+                        return 2; // In Process - middle priority
                     }
-                    return 1; // Scheduled
+                    if (status.includes('unresponsive') || status.includes('no response') || status.includes('not responding')) {
+                        return 3; // Unresponsive - lowest priority
+                    }
+                    return 1; // Default to scheduled
                 };
                 
                 const priorityA = getStatusPriority(statusA);
                 const priorityB = getStatusPriority(statusB);
                 
+                // If different priorities, sort by priority
                 if (priorityA !== priorityB) {
                     return priorityA - priorityB;
                 }
                 
-                // Sort by date if same priority
-                const dateA = parseDate(a[columns[2]]);
-                const dateB = parseDate(b[columns[2]]);
-                return dateA - dateB;
+                // If same priority, sort accordingly
+                if (priorityA === 1) { 
+                    // Both scheduled - sort chronologically by date
+                    const dateA = parseDate(a[columns[2]]);
+                    const dateB = parseDate(b[columns[2]]);
+                    return dateA - dateB; // Earlier dates first
+                } else { 
+                    // Both in process or both unresponsive - sort alphabetically by meeting name
+                    const nameA = (a[columns[0]] || '').toLowerCase();
+                    const nameB = (b[columns[0]] || '').toLowerCase();
+                    return nameA.localeCompare(nameB);
+                }
             });
             
             // Sort past meetings by date (newest first)
@@ -474,11 +522,15 @@
                 const columns = Object.keys(a);
                 const dateA = parseDate(a[columns[2]]);
                 const dateB = parseDate(b[columns[2]]);
-                return dateB - dateA;
+                return dateB - dateA; // Most recent dates first (reverse chronological)
             });
             
-            // Add undated meetings to current meetings
+            // Add undated meetings to current meetings (they'll appear at the end based on status)
             const allCurrentMeetings = [...currentMeetings, ...undatedMeetings];
+            
+            console.log('Final current meetings count:', allCurrentMeetings.length);
+            console.log('Final past meetings count:', pastMeetings.length);
+            console.log('=== END DEBUG ===');
             
             renderMeetings('current-meetings', allCurrentMeetings);
             renderMeetings('past-meetings', pastMeetings);
@@ -486,6 +538,8 @@
         
         function parseDate(dateString) {
             if (!dateString) return new Date();
+            
+            // Handle various date formats
             const date = new Date(dateString);
             return isNaN(date) ? new Date() : date;
         }
@@ -498,18 +552,24 @@
                 return;
             }
             
-            // NO LIMIT! Show ALL meetings
-            const html = meetings.map((meeting) => {
+            console.log(`Rendering ${meetings.length} meetings for ${containerId}`);
+            
+            const html = meetings.map((meeting, index) => {
+                // Get the exact column names from your spreadsheet
                 const columns = Object.keys(meeting);
                 
-                const col1 = meeting[columns[0]] || '';
-                const col2 = meeting[columns[1]] || '';
-                const col3 = meeting[columns[2]] || '';
-                const col4 = meeting[columns[3]] || '';
-                const col5 = meeting[columns[4]] || '';
+                // Use the first 5 columns in order, or map to expected names
+                const col1 = meeting[columns[0]] || 'N/A'; // Meeting
+                const col2 = meeting[columns[1]] || 'N/A'; // Status  
+                const col3 = meeting[columns[2]] || 'N/A'; // Date
+                const col4 = meeting[columns[3]] || 'N/A'; // Location
+                const col5 = meeting[columns[4]] || 'N/A'; // Notes
                 
                 const status = determineStatusFromText(col2);
                 
+                console.log(`Meeting ${index + 1}: "${col1}" - Status: "${col2}" -> Class: ${status.class}`);
+                
+                // Only show dates for scheduled meetings
                 let displayDate = '';
                 if (status.class === 'scheduled') {
                     displayDate = formatDate(col3);
@@ -527,19 +587,27 @@
             }).join('');
             
             container.innerHTML = html;
+            console.log(`Successfully rendered ${meetings.length} meetings in ${containerId}`);
         }
         
         function determineStatusFromText(statusText) {
             const status = (statusText || '').toLowerCase().trim();
             
-            if (status.includes('unresponsive') || status.includes('no response')) {
+            console.log('Checking status:', statusText, '-> normalized:', status);
+            
+            if (status.includes('unresponsive') || status.includes('no response') || status.includes('not responding')) {
                 return { class: 'unresponsive', text: statusText || 'Unresponsive' };
             }
             
-            if (status.includes('in process') || status.includes('in progress')) {
+            if (status.includes('in process') || status.includes('in progress') || status.includes('active') || status.includes('ongoing')) {
                 return { class: 'in-process', text: statusText || 'In Process' };
             }
             
+            if (status.includes('scheduled') || status.includes('confirmed') || status === '' || status.includes('upcoming')) {
+                return { class: 'scheduled', text: statusText || 'Scheduled' };
+            }
+            
+            // Use the exact text from your spreadsheet with default green styling
             return { class: 'scheduled', text: statusText || 'Scheduled' };
         }
         
