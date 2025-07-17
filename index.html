@@ -483,16 +483,16 @@
                 const statusB = (b[columns[1]] || '').toLowerCase().trim();
                 
                 const getStatusPriority = (status) => {
-                    if (status.includes('scheduled') || status.includes('confirmed') || status === '' || status.includes('upcoming')) {
-                        return 1; // Scheduled - highest priority
-                    }
+                    // Check for In Process FIRST (to catch it properly)
                     if (status.includes('in process') || status.includes('in progress') || status.includes('active') || status.includes('ongoing')) {
                         return 2; // In Process - middle priority
                     }
+                    // Check for Unresponsive
                     if (status.includes('unresponsive') || status.includes('no response') || status.includes('not responding')) {
                         return 3; // Unresponsive - lowest priority
                     }
-                    return 1; // Default to scheduled
+                    // Everything else is Scheduled (including blank statuses)
+                    return 1; // Scheduled - highest priority (shows FIRST)
                 };
                 
                 const priorityA = getStatusPriority(statusA);
@@ -595,19 +595,18 @@
             
             console.log('Checking status:', statusText, '-> normalized:', status);
             
-            if (status.includes('unresponsive') || status.includes('no response') || status.includes('not responding')) {
-                return { class: 'unresponsive', text: statusText || 'Unresponsive' };
-            }
-            
+            // Check for In Process FIRST
             if (status.includes('in process') || status.includes('in progress') || status.includes('active') || status.includes('ongoing')) {
                 return { class: 'in-process', text: statusText || 'In Process' };
             }
             
-            if (status.includes('scheduled') || status.includes('confirmed') || status === '' || status.includes('upcoming')) {
-                return { class: 'scheduled', text: statusText || 'Scheduled' };
+            // Check for Unresponsive
+            if (status.includes('unresponsive') || status.includes('no response') || status.includes('not responding')) {
+                return { class: 'unresponsive', text: statusText || 'Unresponsive' };
             }
             
-            // Use the exact text from your spreadsheet with default green styling
+            // Everything else is treated as Scheduled
+            // This includes: "scheduled", "confirmed", empty strings, or any other status
             return { class: 'scheduled', text: statusText || 'Scheduled' };
         }
         
