@@ -3,318 +3,566 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JORDAN'S SCHEDULING TERMINAL</title>
+    <title>Jordan's Scheduling Terminal</title>
     <style>
-        /* Terminal-style CSS */
-        body {
-            background-color: #0c0c0c;
-            color: #33ff33;
-            font-family: 'Courier New', monospace;
-            padding: 20px;
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
+        
+        * {
             margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-
-        .terminal-header {
+        
+        body {
+            font-family: 'Roboto Mono', monospace;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+        
+        .terminal-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            overflow: visible;
+            height: auto;
+            min-height: auto;
+        }
+        
+        .header {
             text-align: center;
-            font-size: 24px;
-            margin-bottom: 30px;
-            text-shadow: 0 0 10px #33ff33;
+            margin-bottom: 40px;
+            border-bottom: 3px solid #00ff00;
+            padding-bottom: 20px;
         }
-
+        
+        .title {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #00ff00;
+            text-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+        
+        .datetime {
+            font-size: 1.2rem;
+            color: #ffff00;
+            text-shadow: 0 0 10px rgba(255, 255, 0, 0.5);
+        }
+        
         .section {
             margin-bottom: 30px;
-            border: 1px solid #33ff33;
+        }
+        
+        .section-header {
+            background: linear-gradient(90deg, #ff6b00, #ff8800);
+            color: white;
+            padding: 15px 20px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
             border-radius: 5px;
+            position: relative;
             overflow: hidden;
         }
-
-        .section-header {
-            background-color: #1a1a1a;
-            padding: 10px;
-            cursor: pointer;
-            user-select: none;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        
+        .section-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
         }
-
-        .section-header:hover {
-            background-color: #2a2a2a;
+        
+        .section-header:hover::before {
+            left: 100%;
         }
-
-        .toggle-icon {
+        
+        .collapse-indicator {
+            float: right;
             transition: transform 0.3s;
         }
-
-        .section.collapsed .toggle-icon {
-            transform: rotate(-90deg);
+        
+        .collapsed .collapse-indicator {
+            transform: rotate(180deg);
         }
-
-        .section-content {
-            max-height: 400px; /* Maximum height before scrolling */
-            overflow-y: auto;
+        
+        .collapsible-content {
+            max-height: 400px;  /* THIS IS THE SCROLLING HEIGHT */
+            overflow-y: auto;   /* THIS MAKES IT SCROLL! */
             overflow-x: auto;
             transition: max-height 0.3s ease-out;
         }
-
-        .section.collapsed .section-content {
-            max-height: 0;
-            overflow: hidden;
-        }
-
-        /* Custom scrollbar styling */
-        .section-content::-webkit-scrollbar {
+        
+        /* Pretty green scrollbar */
+        .collapsible-content::-webkit-scrollbar {
             width: 12px;
-            background-color: #1a1a1a;
         }
 
-        .section-content::-webkit-scrollbar-track {
-            background-color: #1a1a1a;
-            border-left: 1px solid #33ff33;
+        .collapsible-content::-webkit-scrollbar-track {
+            background: #1a1a1a;
+            border-radius: 5px;
         }
 
-        .section-content::-webkit-scrollbar-thumb {
-            background-color: #33ff33;
-            border-radius: 6px;
+        .collapsible-content::-webkit-scrollbar-thumb {
+            background: #00ff00;
+            border-radius: 5px;
         }
 
-        .section-content::-webkit-scrollbar-thumb:hover {
-            background-color: #66ff66;
+        .collapsible-content::-webkit-scrollbar-thumb:hover {
+            background: #00ff00;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
         }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 600px; /* Ensure table doesn't get too narrow */
+        
+        .collapsible-content.collapsed {
+            max-height: 0;
         }
-
-        th, td {
-            padding: 8px 12px;
-            text-align: left;
-            border-bottom: 1px solid #1a4d1a;
+        
+        .flights-board {
+            background: #000000;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 5px;
         }
-
-        th {
-            background-color: #1a1a1a;
+        
+        .flight-header {
+            background: #333333;
+            padding: 15px;
+            font-weight: 700;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+            gap: 20px;
+            color: #00ff00;
+            text-transform: uppercase;
+            letter-spacing: 1px;
             position: sticky;
             top: 0;
             z-index: 10;
-            font-weight: bold;
+        }
+        
+        .flight-row {
+            padding: 15px;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+            gap: 20px;
+            border-bottom: 1px solid #333333;
+            transition: background-color 0.3s;
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        .flight-row:hover {
+            background: rgba(0, 255, 0, 0.1);
+        }
+        
+        .flight-row:nth-child(even) {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .status {
+            font-weight: 700;
             text-transform: uppercase;
+            padding: 5px 10px;
+            border-radius: 15px;
+            text-align: center;
         }
-
-        tr:hover {
-            background-color: #1a1a1a;
+        
+        .status.scheduled {
+            background: #00ff00;
+            color: #000000;
         }
-
+        
+        .status.in-process {
+            background: #ffff00;
+            color: #000000;
+            animation: pulse 2s infinite;
+        }
+        
+        .status.unresponsive {
+            background: #ff0000;
+            color: #ffffff;
+        }
+        
         .loading {
             text-align: center;
-            padding: 20px;
-            font-style: italic;
-        }
-
-        .refresh-status {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 14px;
-            opacity: 0.7;
-        }
-
-        /* Status colors */
-        .status-completed {
             color: #00ff00;
+            font-size: 1.2rem;
+            padding: 40px;
         }
-
-        .status-scheduled {
-            color: #ffff00;
-        }
-
-        .status-cancelled {
+        
+        .error {
+            text-align: center;
             color: #ff0000;
+            font-size: 1.2rem;
+            padding: 40px;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .refresh-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 255, 0, 0.8);
+            color: #000000;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .refresh-indicator.show {
+            opacity: 1;
+        }
+        
+        @media (max-width: 768px) {
+            .title {
+                font-size: 2rem;
+            }
+            
+            .flight-header,
+            .flight-row {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .flight-header > div,
+            .flight-row > div {
+                text-align: center;
+            }
         }
     </style>
 </head>
 <body>
-    <h1 class="terminal-header">JORDAN'S SCHEDULING TERMINAL</h1>
-
-    <!-- Current & Upcoming Meetings Section -->
-    <div class="section" id="current-section">
-        <div class="section-header" onclick="toggleSection('current-section')">
-            <span>Current & Upcoming Meetings</span>
-            <span class="toggle-icon">▼</span>
+    <div class="terminal-container">
+        <div class="header">
+            <h1 class="title">JORDAN'S SCHEDULING TERMINAL</h1>
+            <div class="datetime" id="datetime"></div>
         </div>
-        <div class="section-content">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Meeting</th>
-                        <th>Status</th>
-                        <th>Date</th>
-                        <th>Location</th>
-                        <th>Notes</th>
-                    </tr>
-                </thead>
-                <tbody id="current-meetings-tbody">
-                    <tr>
-                        <td colspan="5" class="loading">Loading current meetings...</td>
-                    </tr>
-                </tbody>
-            </table>
+        
+        <div class="section">
+            <div class="section-header" onclick="toggleSection('current')">
+                <span>Current & Upcoming Meetings</span>
+                <span class="collapse-indicator">▼</span>
+            </div>
+            <div class="collapsible-content" id="current-content">
+                <div class="flights-board">
+                    <div class="flight-header">
+                        <div>Meeting</div>
+                        <div>Status</div>
+                        <div>Date</div>
+                        <div>Location</div>
+                        <div>Notes</div>
+                    </div>
+                    <div id="current-meetings">
+                        <div class="loading">Loading current meetings...</div>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
-
-    <!-- Past Meetings Section -->
-    <div class="section" id="past-section">
-        <div class="section-header" onclick="toggleSection('past-section')">
-            <span>Past Meetings</span>
-            <span class="toggle-icon">▼</span>
-        </div>
-        <div class="section-content">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Meeting</th>
-                        <th>Status</th>
-                        <th>Date</th>
-                        <th>Location</th>
-                        <th>Notes</th>
-                    </tr>
-                </thead>
-                <tbody id="past-meetings-tbody">
-                    <tr>
-                        <td colspan="5" class="loading">Loading past meetings...</td>
-                    </tr>
-                </tbody>
-            </table>
+        
+        <div class="section">
+            <div class="section-header" onclick="toggleSection('past')">
+                <span>Past Meetings</span>
+                <span class="collapse-indicator">▼</span>
+            </div>
+            <div class="collapsible-content collapsed" id="past-content">
+                <div class="flights-board">
+                    <div class="flight-header">
+                        <div>Meeting</div>
+                        <div>Status</div>
+                        <div>Date</div>
+                        <div>Location</div>
+                        <div>Notes</div>
+                    </div>
+                    <div id="past-meetings">
+                        <div class="loading">Loading past meetings...</div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-
-    <div class="refresh-status" id="refresh-status">Refreshing data...</div>
+    
+    <div class="refresh-indicator" id="refresh-indicator">
+        Refreshing data...
+    </div>
 
     <script>
-        // Toggle section collapse/expand
-        function toggleSection(sectionId) {
-            const section = document.getElementById(sectionId);
-            section.classList.toggle('collapsed');
+        // Configuration
+        const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/16OhRbSJ7weWKebvS8xZzboxohQ3J7VbyZlW13NGIzKU/export?format=csv';
+        const REFRESH_INTERVAL = 30000; // 30 seconds
+        
+        // Global variables
+        let meetingsData = [];
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+            
+            loadMeetings();
+            setInterval(loadMeetings, REFRESH_INTERVAL);
+        });
+        
+        function updateDateTime() {
+            const now = new Date();
+            const options = {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            };
+            document.getElementById('datetime').textContent = now.toLocaleDateString('en-US', options);
         }
-
-        // Google Sheets Configuration
-        const SHEET_ID = '16OhRbSJ7weWKebvS8xZzboxohQ3J7VbyZlW13NGIzKU';
-        const API_KEY = 'YOUR_API_KEY_HERE'; // You'll need to add your Google Sheets API key
-        const SHEET_NAME = 'Sheet1'; // Adjust if your sheet has a different name
-
-        // Function to fetch data from Google Sheets
-        async function fetchSheetData() {
+        
+        function showRefreshIndicator() {
+            const indicator = document.getElementById('refresh-indicator');
+            indicator.classList.add('show');
+            setTimeout(() => {
+                indicator.classList.remove('show');
+            }, 2000);
+        }
+        
+        async function loadMeetings() {
             try {
-                const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}?key=${API_KEY}`;
-                const response = await fetch(url);
-                const data = await response.json();
+                showRefreshIndicator();
                 
-                if (data.values) {
-                    processSheetData(data.values);
+                const response = await fetch(SHEET_CSV_URL);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
+                
+                const csvText = await response.text();
+                meetingsData = parseCSV(csvText);
+                
+                displayMeetings();
+                
             } catch (error) {
-                console.error('Error fetching sheet data:', error);
-                // For demonstration, using sample data
-                useSampleData();
+                console.error('Error loading meetings:', error);
+                document.getElementById('current-meetings').innerHTML = `<div class="error">Error loading meetings: ${error.message}</div>`;
+                document.getElementById('past-meetings').innerHTML = `<div class="error">Error loading meetings: ${error.message}</div>`;
             }
         }
-
-        // Process sheet data and populate tables
-        function processSheetData(rows) {
-            // Skip header row if present
-            const dataRows = rows.slice(1);
+        
+        function parseCSV(csvText) {
+            const lines = csvText.trim().split('\n');
+            const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+            
+            const meetings = [];
+            for (let i = 1; i < lines.length; i++) {
+                const values = parseCSVLine(lines[i]);
+                if (values.length >= headers.length) {
+                    const meeting = {};
+                    headers.forEach((header, index) => {
+                        meeting[header] = values[index] ? values[index].replace(/"/g, '').trim() : '';
+                    });
+                    meetings.push(meeting);
+                }
+            }
+            
+            return meetings;
+        }
+        
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            
+            result.push(current.trim());
+            return result;
+        }
+        
+        function displayMeetings() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
             const currentMeetings = [];
             const pastMeetings = [];
-            const today = new Date();
-
-            dataRows.forEach(row => {
-                const [meeting, status, date, location, notes] = row;
-                const meetingDate = new Date(date);
+            const undatedMeetings = [];
+            
+            meetingsData.forEach((meeting) => {
+                const columns = Object.keys(meeting);
+                const dateValue = meeting[columns[2]]; // Date is in 3rd column
                 
-                const meetingData = {
-                    meeting: meeting || '',
-                    status: status || '',
-                    date: date || '',
-                    location: location || '',
-                    notes: notes || ''
-                };
-
-                if (meetingDate >= today || status.toLowerCase() === 'scheduled') {
-                    currentMeetings.push(meetingData);
+                if (!dateValue || dateValue.trim() === '') {
+                    undatedMeetings.push(meeting);
+                    return;
+                }
+                
+                const meetingDate = parseDate(dateValue);
+                
+                if (isNaN(meetingDate)) {
+                    undatedMeetings.push(meeting);
+                    return;
+                }
+                
+                if (meetingDate >= today) {
+                    currentMeetings.push(meeting);
                 } else {
-                    pastMeetings.push(meetingData);
+                    pastMeetings.push(meeting);
                 }
             });
-
-            populateTable('current-meetings-tbody', currentMeetings);
-            populateTable('past-meetings-tbody', pastMeetings);
-            updateRefreshStatus();
+            
+            // Sort current meetings by status priority
+            currentMeetings.sort((a, b) => {
+                const columns = Object.keys(a);
+                const statusA = (a[columns[1]] || '').toLowerCase().trim();
+                const statusB = (b[columns[1]] || '').toLowerCase().trim();
+                
+                const getStatusPriority = (status) => {
+                    if (status.includes('in process') || status.includes('in progress')) {
+                        return 2;
+                    }
+                    if (status.includes('unresponsive')) {
+                        return 3;
+                    }
+                    return 1; // Scheduled
+                };
+                
+                const priorityA = getStatusPriority(statusA);
+                const priorityB = getStatusPriority(statusB);
+                
+                if (priorityA !== priorityB) {
+                    return priorityA - priorityB;
+                }
+                
+                // Sort by date if same priority
+                const dateA = parseDate(a[columns[2]]);
+                const dateB = parseDate(b[columns[2]]);
+                return dateA - dateB;
+            });
+            
+            // Sort past meetings by date (newest first)
+            pastMeetings.sort((a, b) => {
+                const columns = Object.keys(a);
+                const dateA = parseDate(a[columns[2]]);
+                const dateB = parseDate(b[columns[2]]);
+                return dateB - dateA;
+            });
+            
+            // Add undated meetings to current meetings
+            const allCurrentMeetings = [...currentMeetings, ...undatedMeetings];
+            
+            renderMeetings('current-meetings', allCurrentMeetings);
+            renderMeetings('past-meetings', pastMeetings);
         }
-
-        // Populate table with data
-        function populateTable(tbodyId, meetings) {
-            const tbody = document.getElementById(tbodyId);
-            tbody.innerHTML = '';
-
+        
+        function parseDate(dateString) {
+            if (!dateString) return new Date();
+            const date = new Date(dateString);
+            return isNaN(date) ? new Date() : date;
+        }
+        
+        function renderMeetings(containerId, meetings) {
+            const container = document.getElementById(containerId);
+            
             if (meetings.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No meetings found</td></tr>';
+                container.innerHTML = '<div class="loading">No meetings found</div>';
                 return;
             }
-
-            meetings.forEach(meeting => {
-                const row = tbody.insertRow();
-                row.innerHTML = `
-                    <td>${meeting.meeting}</td>
-                    <td class="status-${meeting.status.toLowerCase()}">${meeting.status}</td>
-                    <td>${meeting.date}</td>
-                    <td>${meeting.location}</td>
-                    <td>${meeting.notes}</td>
+            
+            // NO LIMIT! Show ALL meetings
+            const html = meetings.map((meeting) => {
+                const columns = Object.keys(meeting);
+                
+                const col1 = meeting[columns[0]] || '';
+                const col2 = meeting[columns[1]] || '';
+                const col3 = meeting[columns[2]] || '';
+                const col4 = meeting[columns[3]] || '';
+                const col5 = meeting[columns[4]] || '';
+                
+                const status = determineStatusFromText(col2);
+                
+                let displayDate = '';
+                if (status.class === 'scheduled') {
+                    displayDate = formatDate(col3);
+                }
+                
+                return `
+                    <div class="flight-row">
+                        <div>${col1}</div>
+                        <div><span class="status ${status.class}">${status.text}</span></div>
+                        <div>${displayDate}</div>
+                        <div>${col4}</div>
+                        <div>${col5}</div>
+                    </div>
                 `;
+            }).join('');
+            
+            container.innerHTML = html;
+        }
+        
+        function determineStatusFromText(statusText) {
+            const status = (statusText || '').toLowerCase().trim();
+            
+            if (status.includes('unresponsive') || status.includes('no response')) {
+                return { class: 'unresponsive', text: statusText || 'Unresponsive' };
+            }
+            
+            if (status.includes('in process') || status.includes('in progress')) {
+                return { class: 'in-process', text: statusText || 'In Process' };
+            }
+            
+            return { class: 'scheduled', text: statusText || 'Scheduled' };
+        }
+        
+        function formatDate(dateString) {
+            if (!dateString || dateString.trim() === '') return '';
+            
+            const date = parseDate(dateString);
+            if (isNaN(date)) return '';
+            
+            return date.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
             });
         }
-
-        // Sample data for demonstration
-        function useSampleData() {
-            const sampleData = [
-                ['Header Row', 'Status', 'Date', 'Location', 'Notes'], // Header
-                ['Team Standup', 'Scheduled', '2025-07-20', 'Conference Room A', 'Weekly sync'],
-                ['Client Meeting', 'Scheduled', '2025-07-22', 'Zoom', 'Project review'],
-                ['Budget Review', 'Scheduled', '2025-07-25', 'Office 302', 'Q3 planning'],
-                ['Product Demo', 'Scheduled', '2025-07-28', 'Main Hall', 'New feature showcase'],
-                ['Board Meeting', 'Scheduled', '2025-08-01', 'Executive Suite', 'Monthly review'],
-                ['Training Session', 'Scheduled', '2025-08-05', 'Training Room', 'New employee onboarding'],
-                ['Sales Pitch', 'Scheduled', '2025-08-10', 'Client Office', 'New client acquisition'],
-                ['Team Building', 'Scheduled', '2025-08-15', 'Offsite', 'Quarterly event'],
-                ['Strategy Meeting', 'Completed', '2025-07-15', 'Conference Room B', 'Q3 strategy discussion'],
-                ['Project Kickoff', 'Completed', '2025-07-10', 'Zoom', 'New project launch'],
-                ['Design Review', 'Completed', '2025-07-05', 'Design Lab', 'UI/UX review'],
-                ['Sprint Planning', 'Completed', '2025-07-01', 'Dev Room', 'Sprint 23 planning'],
-                ['Performance Review', 'Completed', '2025-06-28', 'HR Office', 'Mid-year reviews'],
-                ['Workshop', 'Cancelled', '2025-06-25', 'Training Center', 'Postponed to next month'],
-                ['Conference Call', 'Completed', '2025-06-20', 'Remote', 'Partner discussion']
-            ];
+        
+        function toggleSection(sectionId) {
+            const content = document.getElementById(sectionId + '-content');
+            const header = content.previousElementSibling;
             
-            processSheetData(sampleData);
+            content.classList.toggle('collapsed');
+            header.classList.toggle('collapsed');
         }
-
-        // Update refresh status
-        function updateRefreshStatus() {
-            const status = document.getElementById('refresh-status');
-            const now = new Date();
-            status.textContent = `Last updated: ${now.toLocaleString()}`;
-        }
-
-        // Auto-refresh every 5 minutes
-        function startAutoRefresh() {
-            fetchSheetData();
-            setInterval(fetchSheetData, 5 * 60 * 1000); // 5 minutes
-        }
-
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', () => {
-            startAutoRefresh();
-        });
     </script>
 </body>
 </html>
