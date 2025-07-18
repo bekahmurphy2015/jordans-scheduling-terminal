@@ -235,7 +235,84 @@
             opacity: 1;
         }
         
+        /* View Toggle Button */
+        .view-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        
+        #view-toggle-btn {
+            background: #00ff00;
+            color: #000000;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-family: 'Roboto Mono', monospace;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 255, 0, 0.3);
+            transition: all 0.3s;
+        }
+        
+        #view-toggle-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 255, 0, 0.5);
+        }
+        
+        /* Mobile View Mode */
+        body.mobile-view {
+            max-width: 375px;
+            margin: 0 auto;
+            padding: 10px;
+        }
+        
+        body.mobile-view .terminal-container {
+            padding: 15px;
+            margin: 0;
+        }
+        
+        body.mobile-view .title {
+            font-size: 1.8rem;
+        }
+        
+        body.mobile-view .datetime {
+            font-size: 0.9rem;
+        }
+        
+        body.mobile-view .section-header {
+            font-size: 1.1rem;
+            padding: 12px 15px;
+        }
+        
+        body.mobile-view .flight-header,
+        body.mobile-view .flight-row {
+            grid-template-columns: 1fr;
+            gap: 10px;
+            padding: 10px;
+        }
+        
+        body.mobile-view .flight-header > div,
+        body.mobile-view .flight-row > div {
+            text-align: center;
+        }
+        
+        body.mobile-view .collapsible-content {
+            max-height: 300px;
+        }
+        
         @media (max-width: 768px) {
+            .view-toggle {
+                bottom: 10px;
+                right: 10px;
+            }
+            
+            #view-toggle-btn {
+                padding: 8px 15px;
+                font-size: 0.9rem;
+            }
+            
             .title {
                 font-size: 2rem;
             }
@@ -254,6 +331,12 @@
     </style>
 </head>
 <body>
+    <div class="view-toggle">
+        <button onclick="toggleView()" id="view-toggle-btn">
+            📱 Switch to Mobile View
+        </button>
+    </div>
+    
     <div class="terminal-container">
         <div class="header">
             <h1 class="title">JORDAN'S SCHEDULING TERMINAL</h1>
@@ -629,6 +712,22 @@
             
             content.classList.toggle('collapsed');
             header.classList.toggle('collapsed');
+        }
+        
+        // Toggle between desktop and mobile view
+        function toggleView() {
+            const body = document.body;
+            const btn = document.getElementById('view-toggle-btn');
+            
+            if (body.classList.contains('mobile-view')) {
+                // Switch to desktop view
+                body.classList.remove('mobile-view');
+                btn.innerHTML = '📱 Switch to Mobile View';
+            } else {
+                // Switch to mobile view
+                body.classList.add('mobile-view');
+                btn.innerHTML = '🖥️ Switch to Desktop View';
+            }
         }
     </script>
 </body>
