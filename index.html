@@ -344,11 +344,11 @@
         </div>
         
         <div class="section">
-            <div class="section-header" onclick="toggleSection('current')">
-                <span>Current & Upcoming Meetings</span>
+            <div class="section-header" onclick="toggleSection('scheduled')">
+                <span>Scheduled Meetings</span>
                 <span class="collapse-indicator">▼</span>
             </div>
-            <div class="collapsible-content" id="current-content">
+            <div class="collapsible-content" id="scheduled-content">
                 <div class="flights-board">
                     <div class="flight-header">
                         <div>Meeting</div>
@@ -357,19 +357,19 @@
                         <div>Location</div>
                         <div>Notes</div>
                     </div>
-                    <div id="current-meetings">
-                        <div class="loading">Loading current meetings...</div>
+                    <div id="scheduled-meetings">
+                        <div class="loading">Loading scheduled meetings...</div>
                     </div>
                 </div>
             </div>
         </div>
         
         <div class="section">
-            <div class="section-header" onclick="toggleSection('past')">
-                <span>Past Meetings</span>
+            <div class="section-header" onclick="toggleSection('inprocess')">
+                <span>In Process Meetings</span>
                 <span class="collapse-indicator">▼</span>
             </div>
-            <div class="collapsible-content collapsed" id="past-content">
+            <div class="collapsible-content collapsed" id="inprocess-content">
                 <div class="flights-board">
                     <div class="flight-header">
                         <div>Meeting</div>
@@ -378,8 +378,8 @@
                         <div>Location</div>
                         <div>Notes</div>
                     </div>
-                    <div id="past-meetings">
-                        <div class="loading">Loading past meetings...</div>
+                    <div id="inprocess-meetings">
+                        <div class="loading">Loading in process meetings...</div>
                     </div>
                 </div>
             </div>
@@ -457,8 +457,8 @@
             } catch (error) {
                 console.error('Error loading meetings:', error);
                 console.error('Error details:', error.message);
-                document.getElementById('current-meetings').innerHTML = `<div class="error">Error loading meetings: ${error.message}</div>`;
-                document.getElementById('past-meetings').innerHTML = `<div class="error">Error loading meetings: ${error.message}</div>`;
+                document.getElementById('scheduled-meetings').innerHTML = `<div class="error">Error loading meetings: ${error.message}</div>`;
+                document.getElementById('inprocess-meetings').innerHTML = `<div class="error">Error loading meetings: ${error.message}</div>`;
             }
         }
         
@@ -513,110 +513,96 @@
         
         function displayMeetings() {
             const today = new Date();
-            today.setHours(0, 0, 0, 0);
+            today.setHours(0, 0, 0, 0); // Set to start of today for accurate comparison
             
             console.log('=== DISPLAY MEETINGS DEBUG ===');
             console.log('Total meetings data:', meetingsData.length);
-            console.log('Today date:', today);
+            console.log('Today\'s date:', today.toLocaleDateString());
             
-            const currentMeetings = [];
-            const pastMeetings = [];
-            const undatedMeetings = [];
+            const scheduledMeetings = [];
+            const inProcessMeetings = [];
+            const unresponsiveMeetings = [];
+            let droppedCount = 0;
             
             meetingsData.forEach((meeting, index) => {
-                // Use the third column (index 2) as the date column
                 const columns = Object.keys(meeting);
-                const dateValue = meeting[columns[2]]; // Assuming date is in 3rd column
+                const statusValue = meeting[columns[1]] || ''; // Status is in 2nd column
+                const status = statusValue.toLowerCase().trim();
+                const dateValue = meeting[columns[2]]; // Date is in 3rd column
                 
-                console.log(`Meeting ${index + 1}: "${meeting[columns[0]]}" - Date: "${dateValue}"`);
+                console.log(`Meeting ${index + 1}: "${meeting[columns[0]]}" - Status: "${statusValue}" - Date: "${dateValue}"`);
                 
-                // Check if date is blank or empty
-                if (!dateValue || dateValue.trim() === '') {
-                    console.log(`  -> Added to undated meetings`);
-                    undatedMeetings.push(meeting);
-                    return;
+                // Check if meeting date is in the past
+                if (dateValue && dateValue.trim() !== '') {
+                    const meetingDate = parseDate(dateValue);
+                    if (!isNaN(meetingDate) && meetingDate < today) {
+                        console.log(`  -> DROPPED (past date: ${meetingDate.toLocaleDateString()})`);
+                        droppedCount++;
+                        return; // Skip this meeting - it's in the past
+                    }
                 }
                 
-                const meetingDate = parseDate(dateValue);
-                
-                // Check if date is valid
-                if (isNaN(meetingDate)) {
-                    console.log(`  -> Invalid date, added to undated meetings`);
-                    undatedMeetings.push(meeting);
-                    return;
-                }
-                
-                if (meetingDate >= today) {
-                    console.log(`  -> Added to current meetings`);
-                    currentMeetings.push(meeting);
+                // Categorize meetings by status (only if not dropped)
+                if (status.includes('unresponsive') || status.includes('no response') || status.includes('not responding')) {
+                    console.log(`  -> Added to unresponsive meetings`);
+                    unresponsiveMeetings.push(meeting);
+                } else if (status.includes('in process') || status.includes('in progress') || status.includes('active') || status.includes('ongoing')) {
+                    console.log(`  -> Added to in process meetings`);
+                    inProcessMeetings.push(meeting);
                 } else {
-                    console.log(`  -> Added to past meetings`);
-                    pastMeetings.push(meeting);
+                    // Everything else is scheduled (including blank statuses)
+                    console.log(`  -> Added to scheduled meetings`);
+                    scheduledMeetings.push(meeting);
                 }
             });
             
-            console.log('Current meetings before sorting:', currentMeetings.length);
-            console.log('Past meetings before sorting:', pastMeetings.length);
-            console.log('Undated meetings:', undatedMeetings.length);
+            console.log('Dropped meetings (past dates):', droppedCount);
+            console.log('Scheduled meetings:', scheduledMeetings.length);
+            console.log('In Process meetings:', inProcessMeetings.length);
+            console.log('Unresponsive meetings:', unresponsiveMeetings.length);
             
-            // Sort current meetings by status priority and then appropriately within each status
-            currentMeetings.sort((a, b) => {
-                const columns = Object.keys(a);
-                const statusA = (a[columns[1]] || '').toLowerCase().trim();
-                const statusB = (b[columns[1]] || '').toLowerCase().trim();
-                
-                const getStatusPriority = (status) => {
-                    // Check for In Process FIRST (to catch it properly)
-                    if (status.includes('in process') || status.includes('in progress') || status.includes('active') || status.includes('ongoing')) {
-                        return 2; // In Process - middle priority
-                    }
-                    // Check for Unresponsive
-                    if (status.includes('unresponsive') || status.includes('no response') || status.includes('not responding')) {
-                        return 3; // Unresponsive - lowest priority
-                    }
-                    // Everything else is Scheduled (including blank statuses)
-                    return 1; // Scheduled - highest priority (shows FIRST)
-                };
-                
-                const priorityA = getStatusPriority(statusA);
-                const priorityB = getStatusPriority(statusB);
-                
-                // If different priorities, sort by priority
-                if (priorityA !== priorityB) {
-                    return priorityA - priorityB;
-                }
-                
-                // If same priority, sort accordingly
-                if (priorityA === 1) { 
-                    // Both scheduled - sort chronologically by date
-                    const dateA = parseDate(a[columns[2]]);
-                    const dateB = parseDate(b[columns[2]]);
-                    return dateA - dateB; // Earlier dates first
-                } else { 
-                    // Both in process or both unresponsive - sort alphabetically by meeting name
-                    const nameA = (a[columns[0]] || '').toLowerCase();
-                    const nameB = (b[columns[0]] || '').toLowerCase();
-                    return nameA.localeCompare(nameB);
-                }
-            });
-            
-            // Sort past meetings by date (newest first)
-            pastMeetings.sort((a, b) => {
+            // Sort scheduled meetings chronologically first, then alphabetically
+            scheduledMeetings.sort((a, b) => {
                 const columns = Object.keys(a);
                 const dateA = parseDate(a[columns[2]]);
                 const dateB = parseDate(b[columns[2]]);
-                return dateB - dateA; // Most recent dates first (reverse chronological)
+                
+                // If dates are different, sort by date (earliest first)
+                if (dateA.getTime() !== dateB.getTime()) {
+                    return dateA - dateB;
+                }
+                
+                // If dates are the same, sort alphabetically by meeting name
+                const nameA = (a[columns[0]] || '').toLowerCase();
+                const nameB = (b[columns[0]] || '').toLowerCase();
+                return nameA.localeCompare(nameB);
             });
             
-            // Add undated meetings to current meetings (they'll appear at the end based on status)
-            const allCurrentMeetings = [...currentMeetings, ...undatedMeetings];
+            // Sort in process meetings alphabetically by meeting name
+            inProcessMeetings.sort((a, b) => {
+                const columns = Object.keys(a);
+                const nameA = (a[columns[0]] || '').toLowerCase();
+                const nameB = (b[columns[0]] || '').toLowerCase();
+                return nameA.localeCompare(nameB);
+            });
             
-            console.log('Final current meetings count:', allCurrentMeetings.length);
-            console.log('Final past meetings count:', pastMeetings.length);
+            // Sort unresponsive meetings alphabetically by meeting name
+            unresponsiveMeetings.sort((a, b) => {
+                const columns = Object.keys(a);
+                const nameA = (a[columns[0]] || '').toLowerCase();
+                const nameB = (b[columns[0]] || '').toLowerCase();
+                return nameA.localeCompare(nameB);
+            });
+            
+            // Combine in process and unresponsive for the second section
+            const allInProcessMeetings = [...inProcessMeetings, ...unresponsiveMeetings];
+            
+            console.log('Final scheduled meetings count:', scheduledMeetings.length);
+            console.log('Final in process section count:', allInProcessMeetings.length);
             console.log('=== END DEBUG ===');
             
-            renderMeetings('current-meetings', allCurrentMeetings);
-            renderMeetings('past-meetings', pastMeetings);
+            renderMeetings('scheduled-meetings', scheduledMeetings);
+            renderMeetings('inprocess-meetings', allInProcessMeetings);
         }
         
         function parseDate(dateString) {
